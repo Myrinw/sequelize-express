@@ -1,6 +1,9 @@
 const express = require("express");
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
+
+const cors = require("cors");
+app.use(cors())
 
 const User = require("./models").user;
 const TodoList = require("./models").todoList;
@@ -47,15 +50,80 @@ app.get("/todolists", async (req, res) => {
     res.json(todos);
 });
 
-app.post("/todolist", async (req, res, next) => {
+app.post("/todolists", async (req, res, next) => {
     try {
-        const data = await TodoList.create(req.body);
-        res.json(user);
-    }
-    catch (e) {
+        const newList = await TodoList.create(req.body);
+        res.json(newList);
+    } catch (e) {
         next(e);
     }
+});
+
+app.put("/todolists/:listId", async (req, res, next) => {
+    try {
+        const listId = parseInt(req.params.listId);
+        const listToUpdate = await TodoList.findByPk(listId);
+        if (!listToUpdate) {
+            res.status(404).send("List not found");
+        } else {
+            const updatedList = await listToUpdate.update(req.body);
+            res.json(updatedList);
+        }
+    } catch (e) {
+        next(e);
+    }
+});
+
+app.get("/users/:userId/lists", async (req, res, next) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const user = await User.findByPk(userId, {
+            include: [TodoList],
+        });
+        if (user) {
+            console.log(user.todoLists)
+            res.send(user.todoLists);
+        } else {
+            console.log("not found iiittt");
+            res.status(404).send("User not found");
+        }
+    } catch (e) {
+        console.log("noooo")
+        next(e);
+    }
+});
+
+app.post("/users/:userId/lists", async (req, res, next) => {
+    try {
+        const id = req.params.userId;
+        const user = await User.findByPk(id);
+        if (user) {
+            const newTodo = await TodoList.create({ userId: id, ...req.body });
+            res.send(newTodo);
+        } else {
+            res.status(404).send("user not found")
+        }
+    } catch (e) {
+        next(e);
+    }
+
 })
+
+app.delete("users/:userId/lists/:listId", async (req, res, next) => {
+    try {
+
+        const listId = req.params.listId;
+        const list = await TodoList.findByPk(listId);
+        if (list) {
+            const remove = await TodoList.destroy(list);
+            res.status(202).send(remove);
+        } else {
+            res.status(404).send("list not found");
+        }
+    } catch (e) {
+        next(e);
+    }
+});
 
 app.listen(PORT, function () {
     console.log("listening on port", PORT);
