@@ -10,7 +10,10 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      todoItem.belongsToMany(models.tag, {
+        through: "itemTags",
+        foreignKey: "tagId",
+      });
     }
   };
   todoItem.init({
@@ -20,5 +23,6 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'todoItem',
   });
+
   return todoItem;
 };
